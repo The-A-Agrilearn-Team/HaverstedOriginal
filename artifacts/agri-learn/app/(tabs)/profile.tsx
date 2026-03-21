@@ -13,14 +13,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
+import { useProfileStats } from "@/hooks/useProgress";
 
 const C = Colors.light;
-
-const LANGUAGES = ["English", "isiZulu", "Sesotho", "Afrikaans", "isiXhosa"];
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, profile, signOut } = useAuth();
+  const { data: stats = { completed: 0, bookmarks: 0, listings: 0 } } = useProfileStats();
 
   const handleSignOut = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -44,7 +44,7 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.guestTitle}>You're not signed in</Text>
         <Text style={styles.guestSubtitle}>
-          Create an account to access learning modules, save your progress, and list your produce in the marketplace.
+          Create an account to access all learning modules, track your progress, and list produce in the marketplace.
         </Text>
         <Pressable
           style={({ pressed }) => [styles.signInBtn, { opacity: pressed ? 0.85 : 1 }]}
@@ -72,12 +72,13 @@ export default function ProfileScreen() {
     .toUpperCase()
     .slice(0, 2);
 
-  const roleColor = {
+  const roleColor: Record<string, string> = {
     farmer: C.success,
     buyer: C.accent,
     retailer: "#7C3AED",
     admin: C.error,
-  }[profile?.role ?? "farmer"] ?? C.primary;
+  };
+  const thisColor = roleColor[profile?.role ?? "farmer"] ?? C.primary;
 
   return (
     <ScrollView
@@ -91,25 +92,31 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.name}>{profile?.full_name ?? "User"}</Text>
         <Text style={styles.email}>{user.email}</Text>
-        <View style={[styles.roleBadge, { backgroundColor: `${roleColor}18` }]}>
-          <View style={[styles.roleDot, { backgroundColor: roleColor }]} />
-          <Text style={[styles.roleText, { color: roleColor }]}>
+        <View style={[styles.roleBadge, { backgroundColor: `${thisColor}18` }]}>
+          <View style={[styles.roleDot, { backgroundColor: thisColor }]} />
+          <Text style={[styles.roleText, { color: thisColor }]}>
             {(profile?.role ?? "farmer").charAt(0).toUpperCase() + (profile?.role ?? "farmer").slice(1)}
           </Text>
         </View>
+        {profile?.location && (
+          <View style={styles.locationRow}>
+            <Feather name="map-pin" size={13} color={C.textSecondary} />
+            <Text style={styles.locationText}>{profile.location}</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.statsRow}>
         <View style={styles.stat}>
-          <Text style={styles.statNum}>0</Text>
+          <Text style={styles.statNum}>{stats.completed}</Text>
           <Text style={styles.statLbl}>Completed</Text>
         </View>
         <View style={[styles.stat, styles.statBorder]}>
-          <Text style={styles.statNum}>0</Text>
+          <Text style={styles.statNum}>{stats.bookmarks}</Text>
           <Text style={styles.statLbl}>Bookmarks</Text>
         </View>
         <View style={styles.stat}>
-          <Text style={styles.statNum}>0</Text>
+          <Text style={styles.statNum}>{stats.listings}</Text>
           <Text style={styles.statLbl}>Listings</Text>
         </View>
       </View>
@@ -126,8 +133,8 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Learning</Text>
         <View style={styles.menuGroup}>
-          <MenuRow icon="bookmark" label="Saved Modules" />
-          <MenuRow icon="award" label="My Progress" />
+          <MenuRow icon="bookmark" label="Saved Modules" badge={stats.bookmarks > 0 ? String(stats.bookmarks) : undefined} />
+          <MenuRow icon="award" label="My Progress" badge={stats.completed > 0 ? `${stats.completed} done` : undefined} />
           <MenuRow icon="download" label="Offline Content" last />
         </View>
       </View>
@@ -136,7 +143,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Marketplace</Text>
           <View style={styles.menuGroup}>
-            <MenuRow icon="package" label="My Listings" />
+            <MenuRow icon="package" label="My Listings" badge={stats.listings > 0 ? String(stats.listings) : undefined} />
             <MenuRow icon="message-circle" label="Messages" last />
           </View>
         </View>
@@ -161,21 +168,16 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
+      <Text style={styles.versionText}>AgriLearn v1.0.0</Text>
       <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
 
 function MenuRow({
-  icon,
-  label,
-  value,
-  last,
+  icon, label, value, badge, last,
 }: {
-  icon: string;
-  label: string;
-  value?: string;
-  last?: boolean;
+  icon: string; label: string; value?: string; badge?: string; last?: boolean;
 }) {
   return (
     <Pressable
@@ -192,6 +194,11 @@ function MenuRow({
         <Text style={styles.menuLabel}>{label}</Text>
       </View>
       <View style={styles.menuRowRight}>
+        {badge && (
+          <View style={styles.badgePill}>
+            <Text style={styles.badgeText}>{badge}</Text>
+          </View>
+        )}
         {value && <Text style={styles.menuValue}>{value}</Text>}
         <Feather name="chevron-right" size={18} color={C.textTertiary} />
       </View>
@@ -201,77 +208,28 @@ function MenuRow({
 
 const styles = StyleSheet.create({
   guestContainer: {
-    flex: 1,
-    backgroundColor: C.background,
-    alignItems: "center",
-    paddingHorizontal: 32,
-    gap: 16,
+    flex: 1, backgroundColor: C.background, alignItems: "center", paddingHorizontal: 32, gap: 16,
   },
   guestIconBox: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: `${C.primary}12`,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
+    width: 96, height: 96, borderRadius: 48, backgroundColor: `${C.primary}12`, alignItems: "center", justifyContent: "center", marginBottom: 8,
   },
   guestTitle: { fontSize: 24, fontFamily: "Inter_700Bold", color: C.text, textAlign: "center" },
   guestSubtitle: { fontSize: 14, fontFamily: "Inter_400Regular", color: C.textSecondary, textAlign: "center", lineHeight: 22 },
-  signInBtn: {
-    width: "100%",
-    backgroundColor: C.primary,
-    borderRadius: 14,
-    padding: 16,
-    alignItems: "center",
-  },
+  signInBtn: { width: "100%", backgroundColor: C.primary, borderRadius: 14, padding: 16, alignItems: "center" },
   signInBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  registerBtn: {
-    width: "100%",
-    borderRadius: 14,
-    padding: 16,
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: C.border,
-  },
+  registerBtn: { width: "100%", borderRadius: 14, padding: 16, alignItems: "center", borderWidth: 1.5, borderColor: C.border },
   registerBtnText: { color: C.text, fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  header: {
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    gap: 8,
-  },
-  avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: C.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
-  },
+  header: { alignItems: "center", paddingHorizontal: 20, paddingBottom: 24, gap: 6 },
+  avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: C.primary, alignItems: "center", justifyContent: "center", marginBottom: 4 },
   avatarText: { fontSize: 32, fontFamily: "Inter_700Bold", color: "#fff" },
   name: { fontSize: 22, fontFamily: "Inter_700Bold", color: C.text },
   email: { fontSize: 14, fontFamily: "Inter_400Regular", color: C.textSecondary },
-  roleBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
+  roleBadge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   roleDot: { width: 7, height: 7, borderRadius: 3.5 },
   roleText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  statsRow: {
-    flexDirection: "row",
-    marginHorizontal: 20,
-    backgroundColor: C.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    marginBottom: 24,
-  },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  locationText: { fontSize: 13, fontFamily: "Inter_400Regular", color: C.textSecondary },
+  statsRow: { flexDirection: "row", marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, marginBottom: 24 },
   stat: { flex: 1, alignItems: "center", paddingVertical: 16 },
   statBorder: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: C.border },
   statNum: { fontSize: 22, fontFamily: "Inter_700Bold", color: C.text },
@@ -285,18 +243,14 @@ const styles = StyleSheet.create({
   menuIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: `${C.primary}12`, alignItems: "center", justifyContent: "center" },
   menuLabel: { fontSize: 15, fontFamily: "Inter_500Medium", color: C.text },
   menuRowRight: { flexDirection: "row", alignItems: "center", gap: 6 },
+  badgePill: { backgroundColor: C.primary, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+  badgeText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#fff" },
   menuValue: { fontSize: 14, fontFamily: "Inter_400Regular", color: C.textSecondary },
-  signOutSection: { marginHorizontal: 20, marginBottom: 16 },
+  signOutSection: { marginHorizontal: 20, marginBottom: 8 },
   signOutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: `${C.error}10`,
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: `${C.error}20`,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
+    backgroundColor: `${C.error}10`, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: `${C.error}20`,
   },
   signOutText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: C.error },
+  versionText: { fontSize: 12, fontFamily: "Inter_400Regular", color: C.textTertiary, textAlign: "center", marginBottom: 8 },
 });

@@ -1,8 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -12,21 +14,43 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
+import { supabase, ProductListing } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
 const C = Colors.light;
 
-const LISTINGS: Record<string, {
-  id: string; farmer_id: string; farmer_name: string; title: string; description: string;
-  category: string; price: number; quantity: number; unit: string; location: string; status: string; phone: string;
-}> = {
-  "1": { id: "1", farmer_id: "f1", farmer_name: "Sipho Ndlovu", title: "Fresh Tomatoes", description: "Ripe, juicy farm-fresh tomatoes. Grown without pesticides using organic methods. Available for pickup from the farm or delivery within Durban area. Minimum order 5kg. Bulk discounts available for orders over 20kg.", category: "Vegetables", price: 12.50, quantity: 50, unit: "kg", location: "Durban, KZN", status: "active", phone: "+27 82 123 4567" },
-  "2": { id: "2", farmer_id: "f2", farmer_name: "Thabo Molefe", title: "Free-Range Eggs", description: "Organic free-range eggs from happy hens. Fresh daily. Our hens roam freely on natural pasture and are fed a supplementary diet of organic grain. No hormones or antibiotics used. Collection or delivery available.", category: "Poultry", price: 4.00, quantity: 200, unit: "dozen", location: "Johannesburg, GP", status: "active", phone: "+27 71 234 5678" },
-  "3": { id: "3", farmer_id: "f3", farmer_name: "Nomvula Dlamini", title: "Butternut Squash", description: "Large, sweet butternut squash. Perfect for soups and roasting. Harvested at peak ripeness. These butternuts are grown in nutrient-rich soil without synthetic fertilizers.", category: "Vegetables", price: 8.00, quantity: 100, unit: "kg", location: "Pretoria, GP", status: "active", phone: "+27 83 345 6789" },
-  "4": { id: "4", farmer_id: "f4", farmer_name: "Pieter van Niekerk", title: "Mango Harvest", description: "Sweet Keitt mangoes, freshly harvested. Bulk orders welcome. These mangoes are grown in our Limpopo orchard using sustainable practices. Ideal for export quality standards.", category: "Fruits", price: 25.00, quantity: 300, unit: "kg", location: "Limpopo", status: "active", phone: "+27 72 456 7890" },
-  "5": { id: "5", farmer_id: "f5", farmer_name: "Zanele Khumalo", title: "Yellow Maize", description: "Grade A yellow maize, dried and ready for milling or livestock feed. Moisture content below 14%. Stored in clean, pest-free conditions.", category: "Grains", price: 3.50, quantity: 2000, unit: "kg", location: "Free State", status: "active", phone: "+27 79 567 8901" },
-  "6": { id: "6", farmer_id: "f6", farmer_name: "Johan Botha", title: "Fresh Milk", description: "Raw milk from Jersey cows. Collected daily. Contact for delivery schedule. Our cows are grass-fed and tested regularly for quality and safety.", category: "Dairy", price: 15.00, quantity: 100, unit: "litre", location: "Western Cape", status: "active", phone: "+27 84 678 9012" },
+const MOCK_LISTINGS: Record<string, ProductListing & { farmer_name: string; phone: string }> = {
+  "1": { id: "1", farmer_id: "f1", farmer_name: "Sipho Ndlovu", phone: "+27 82 123 4567", title: "Fresh Tomatoes", description: "Ripe, juicy farm-fresh tomatoes. Grown without pesticides using organic methods. Available for pickup from the farm or delivery within Durban area. Minimum order 5kg. Bulk discounts available for orders over 20kg.", category: "Vegetables", price: 12.50, quantity: 50, unit: "kg", location: "Durban, KZN", status: "active", created_at: new Date().toISOString() },
+  "2": { id: "2", farmer_id: "f2", farmer_name: "Thabo Molefe", phone: "+27 71 234 5678", title: "Free-Range Eggs", description: "Organic free-range eggs from happy hens. Fresh daily. Our hens roam freely on natural pasture and are fed supplementary organic grain. No hormones or antibiotics.", category: "Poultry", price: 4.00, quantity: 200, unit: "dozen", location: "Johannesburg, GP", status: "active", created_at: new Date().toISOString() },
+  "3": { id: "3", farmer_id: "f3", farmer_name: "Nomvula Dlamini", phone: "+27 83 345 6789", title: "Butternut Squash", description: "Large, sweet butternut squash. Perfect for soups and roasting. Harvested at peak ripeness. Grown in nutrient-rich soil without synthetic fertilizers.", category: "Vegetables", price: 8.00, quantity: 100, unit: "kg", location: "Pretoria, GP", status: "active", created_at: new Date().toISOString() },
+  "4": { id: "4", farmer_id: "f4", farmer_name: "Pieter van Niekerk", phone: "+27 72 456 7890", title: "Mango Harvest", description: "Sweet Keitt mangoes, freshly harvested. Bulk orders welcome. Grown in our Limpopo orchard using sustainable practices.", category: "Fruits", price: 25.00, quantity: 300, unit: "kg", location: "Limpopo", status: "active", created_at: new Date().toISOString() },
+  "5": { id: "5", farmer_id: "f5", farmer_name: "Zanele Khumalo", phone: "+27 79 567 8901", title: "Yellow Maize", description: "Grade A yellow maize, dried and ready for milling or livestock feed. Moisture content below 14%. Stored in clean, pest-free conditions.", category: "Grains", price: 3.50, quantity: 2000, unit: "kg", location: "Free State", status: "active", created_at: new Date().toISOString() },
+  "6": { id: "6", farmer_id: "f6", farmer_name: "Johan Botha", phone: "+27 84 678 9012", title: "Fresh Milk", description: "Raw milk from Jersey cows. Collected daily. Cows are grass-fed and tested regularly for quality and safety.", category: "Dairy", price: 15.00, quantity: 100, unit: "litre", location: "Western Cape", status: "active", created_at: new Date().toISOString() },
 };
+
+function useSingleListing(id: string) {
+  return useQuery({
+    queryKey: ["listing", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_listings")
+        .select(`*, profiles:farmer_id (full_name, phone)`)
+        .eq("id", id)
+        .single();
+
+      if (error || !data) {
+        return MOCK_LISTINGS[id] ?? MOCK_LISTINGS["1"];
+      }
+      return {
+        ...data,
+        farmer_name: (data as any).profiles?.full_name ?? "Unknown Farmer",
+        phone: (data as any).profiles?.phone ?? "",
+      } as ProductListing & { farmer_name: string; phone: string };
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+}
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,28 +58,39 @@ export default function ProductDetailScreen() {
   const { user } = useAuth();
   const [contacted, setContacted] = useState(false);
 
-  const item = LISTINGS[id ?? "1"] ?? LISTINGS["1"];
+  const { data: item, isLoading } = useSingleListing(id ?? "1");
 
   const handleContact = () => {
     if (!user) {
-      Alert.alert(
-        "Sign In Required",
-        "Please sign in to contact the seller.",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Sign In", onPress: () => router.push("/(auth)/login") },
-        ]
-      );
+      Alert.alert("Sign In Required", "Please sign in to contact the seller.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Sign In", onPress: () => router.push("/(auth)/login") },
+      ]);
       return;
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setContacted(true);
     Alert.alert(
       "Request Sent",
-      `Your interest in "${item.title}" has been sent to ${item.farmer_name}. They will contact you shortly.`,
+      `Your interest in "${item?.title}" has been sent to ${item?.farmer_name}. They will contact you shortly.`,
       [{ text: "OK" }]
     );
   };
+
+  if (isLoading || !item) {
+    return (
+      <View style={{ flex: 1, backgroundColor: C.background, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color={C.primary} />
+      </View>
+    );
+  }
+
+  const farmerInitials = (item.farmer_name ?? "?")
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <View style={{ flex: 1, backgroundColor: C.background }}>
@@ -79,7 +114,7 @@ export default function ProductDetailScreen() {
         <View style={styles.imageBox}>
           <Feather name="package" size={52} color={C.primary} />
           <View style={styles.statusBadge}>
-            <View style={[styles.statusDot, { backgroundColor: C.success }]} />
+            <View style={styles.statusDot} />
             <Text style={styles.statusText}>Available</Text>
           </View>
         </View>
@@ -91,7 +126,7 @@ export default function ProductDetailScreen() {
               <Text style={styles.title}>{item.title}</Text>
             </View>
             <View style={styles.priceBox}>
-              <Text style={styles.price}>R{item.price.toFixed(2)}</Text>
+              <Text style={styles.price}>R{Number(item.price).toFixed(2)}</Text>
               <Text style={styles.unit}>per {item.unit}</Text>
             </View>
           </View>
@@ -117,9 +152,7 @@ export default function ProductDetailScreen() {
 
           <View style={styles.farmerCard}>
             <View style={styles.farmerAvatar}>
-              <Text style={styles.farmerAvatarText}>
-                {item.farmer_name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
-              </Text>
+              <Text style={styles.farmerAvatarText}>{farmerInitials}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.farmerLabel}>Sold by</Text>
@@ -129,7 +162,7 @@ export default function ProductDetailScreen() {
                 <Text style={styles.farmerLocation}>{item.location}</Text>
               </View>
             </View>
-            <View style={[styles.verifiedBadge]}>
+            <View style={styles.verifiedBadge}>
               <Feather name="check-circle" size={14} color={C.success} />
               <Text style={styles.verifiedText}>Verified</Text>
             </View>
@@ -181,45 +214,13 @@ export default function ProductDetailScreen() {
 
 const styles = StyleSheet.create({
   navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: C.background,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, backgroundColor: C.background,
   },
-  navBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: C.surfaceSecondary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  navBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.surfaceSecondary, alignItems: "center", justifyContent: "center" },
   navTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: C.text },
-  imageBox: {
-    height: 200,
-    backgroundColor: `${C.primary}10`,
-    alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 20,
-    borderRadius: 20,
-    marginBottom: 20,
-    position: "relative",
-  },
-  statusBadge: {
-    position: "absolute",
-    top: 14,
-    right: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  statusDot: { width: 7, height: 7, borderRadius: 3.5 },
+  imageBox: { height: 200, backgroundColor: `${C.primary}10`, alignItems: "center", justifyContent: "center", marginHorizontal: 20, borderRadius: 20, marginBottom: 20, position: "relative" },
+  statusBadge: { position: "absolute", top: 14, right: 14, flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#fff", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+  statusDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: C.success },
   statusText: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: C.success },
   body: { paddingHorizontal: 20, gap: 0 },
   titleRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 16, gap: 12 },
@@ -234,14 +235,7 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: C.text },
   divider: { height: 1, backgroundColor: C.border, marginVertical: 16 },
   farmerCard: { flexDirection: "row", alignItems: "center", gap: 12 },
-  farmerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: C.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  farmerAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.primary, alignItems: "center", justifyContent: "center" },
   farmerAvatarText: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff" },
   farmerLabel: { fontSize: 11, fontFamily: "Inter_400Regular", color: C.textSecondary },
   farmerName: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: C.text },
@@ -252,32 +246,10 @@ const styles = StyleSheet.create({
   descLabel: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: C.text, marginBottom: 8 },
   descText: { fontSize: 14, fontFamily: "Inter_400Regular", color: C.textSecondary, lineHeight: 22 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  tag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: `${C.primary}10`,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
+  tag: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: `${C.primary}10`, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
   tagText: { fontSize: 12, fontFamily: "Inter_500Medium", color: C.primaryLight },
-  footer: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    backgroundColor: C.background,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  contactBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: C.primary,
-    borderRadius: 14,
-    padding: 16,
-  },
+  footer: { paddingHorizontal: 20, paddingTop: 16, backgroundColor: C.background, borderTopWidth: 1, borderTopColor: C.border },
+  contactBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: C.primary, borderRadius: 14, padding: 16 },
   contactedBtn: { backgroundColor: C.success },
   contactBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
 });

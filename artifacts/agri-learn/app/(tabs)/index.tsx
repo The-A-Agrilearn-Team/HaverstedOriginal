@@ -1,8 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,42 +14,28 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
-import { supabase, LearningModule, ProductListing } from "@/lib/supabase";
+import { useFeaturedModules } from "@/hooks/useModules";
+import { useRecentListings } from "@/hooks/useListings";
 
 const C = Colors.light;
 
 const CATEGORIES = [
-  { label: "Crops", icon: "sun", color: "#52B788" },
-  { label: "Livestock", icon: "heart", color: "#F2994A" },
-  { label: "Irrigation", icon: "droplet", color: "#3B82F6" },
-  { label: "Soil", icon: "layers", color: "#92400E" },
-  { label: "Pest Control", icon: "shield", color: "#DC2626" },
-  { label: "Business", icon: "trending-up", color: "#7C3AED" },
-];
-
-const MOCK_MODULES: LearningModule[] = [
-  {
-    id: "1", title: "Intro to Crop Rotation", description: "Learn how to improve soil health through strategic crop rotation techniques.", category: "Crops", level: "beginner", content: "", image_url: undefined, duration_minutes: 15, language: "en", created_at: new Date().toISOString(),
-  },
-  {
-    id: "2", title: "Water Management Basics", description: "Efficient irrigation strategies for small-scale farms.", category: "Irrigation", level: "beginner", content: "", duration_minutes: 20, language: "en", created_at: new Date().toISOString(),
-  },
-  {
-    id: "3", title: "Soil Testing & pH", description: "Understanding soil composition and how to optimize it for better yields.", category: "Soil", level: "intermediate", content: "", duration_minutes: 25, language: "en", created_at: new Date().toISOString(),
-  },
-];
-
-const MOCK_LISTINGS: ProductListing[] = [
-  { id: "1", farmer_id: "f1", farmer_name: "Sipho Ndlovu", title: "Fresh Tomatoes", description: "Ripe farm-fresh tomatoes", category: "Vegetables", price: 12.50, quantity: 50, unit: "kg", location: "Durban, KZN", status: "active", created_at: new Date().toISOString() },
-  { id: "2", farmer_id: "f2", farmer_name: "Thabo Molefe", title: "Free-Range Eggs", description: "Organic free-range eggs", category: "Poultry", price: 4.00, quantity: 200, unit: "dozen", location: "Johannesburg, GP", status: "active", created_at: new Date().toISOString() },
+  { label: "Crops",        icon: "sun",         color: "#52B788" },
+  { label: "Livestock",    icon: "heart",        color: "#F2994A" },
+  { label: "Irrigation",   icon: "droplet",      color: "#3B82F6" },
+  { label: "Soil",         icon: "layers",       color: "#92400E" },
+  { label: "Pest Control", icon: "shield",       color: "#DC2626" },
+  { label: "Business",     icon: "trending-up",  color: "#7C3AED" },
 ];
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user, profile } = useAuth();
-  const [modules, setModules] = useState<LearningModule[]>(MOCK_MODULES);
-  const [listings, setListings] = useState<ProductListing[]>(MOCK_LISTINGS);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+
+  const { data: modules = [], isLoading: modulesLoading, refetch: refetchModules } = useFeaturedModules();
+  const { data: listings = [], isLoading: listingsLoading, refetch: refetchListings } = useRecentListings();
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -59,17 +46,19 @@ export default function HomeScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await new Promise((r) => setTimeout(r, 1000));
+    await Promise.all([refetchModules(), refetchListings()]);
     setRefreshing(false);
   };
 
-  const firstName = profile?.full_name?.split(" ")[0] ?? "Farmer";
+  const firstName = profile?.full_name?.split(" ")[0] ?? (user ? "Farmer" : "Guest");
 
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: C.background }}
       contentInsetAdjustmentBehavior="automatic"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} />}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} />
+      }
       showsVerticalScrollIndicator={false}
     >
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
@@ -96,25 +85,29 @@ export default function HomeScreen() {
       </View>
 
       {!user && (
-        <View style={styles.guestBanner}>
+        <Pressable
+          style={styles.guestBanner}
+          onPress={() => router.push("/(auth)/login")}
+        >
           <Feather name="info" size={16} color={C.primary} />
           <Text style={styles.guestBannerText}>
-            Sign in to access all features, save progress, and list products.
+            Sign in to save progress, bookmark modules, and list your produce.
           </Text>
-        </View>
+          <Feather name="chevron-right" size={14} color={C.primary} />
+        </Pressable>
       )}
 
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>12</Text>
+          <Text style={styles.statNumber}>{modules.length || 6}</Text>
           <Text style={styles.statLabel}>Modules</Text>
         </View>
         <View style={[styles.statCard, styles.statCardCenter]}>
-          <Text style={styles.statNumber}>48</Text>
+          <Text style={styles.statNumber}>{listings.length || 6}</Text>
           <Text style={styles.statLabel}>Listings</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>3</Text>
+          <Text style={styles.statNumber}>5</Text>
           <Text style={styles.statLabel}>Languages</Text>
         </View>
       </View>
@@ -125,10 +118,7 @@ export default function HomeScreen() {
           {CATEGORIES.map((cat) => (
             <Pressable
               key={cat.label}
-              style={({ pressed }) => [
-                styles.categoryChip,
-                { opacity: pressed ? 0.7 : 1 },
-              ]}
+              style={({ pressed }) => [styles.categoryChip, { opacity: pressed ? 0.7 : 1 }]}
               onPress={() => {
                 Haptics.selectionAsync();
                 router.push("/(tabs)/learn");
@@ -150,33 +140,45 @@ export default function HomeScreen() {
             <Text style={styles.seeAll}>See all</Text>
           </Pressable>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
-          {modules.map((mod) => (
-            <Pressable
-              key={mod.id}
-              style={({ pressed }) => [styles.moduleCard, { opacity: pressed ? 0.95 : 1 }]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push(`/module/${mod.id}`);
-              }}
-            >
-              <View style={styles.moduleMeta}>
-                <View style={[styles.levelBadge, { backgroundColor: mod.level === "beginner" ? "#D1FAE5" : mod.level === "intermediate" ? "#FEF3C7" : "#FCE7F3" }]}>
-                  <Text style={[styles.levelText, { color: mod.level === "beginner" ? "#059669" : mod.level === "intermediate" ? "#D97706" : "#DB2777" }]}>{mod.level}</Text>
+        {modulesLoading ? (
+          <ActivityIndicator color={C.primary} style={{ paddingLeft: 20 }} />
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+          >
+            {modules.slice(0, 4).map((mod) => (
+              <Pressable
+                key={mod.id}
+                style={({ pressed }) => [styles.moduleCard, { opacity: pressed ? 0.95 : 1 }]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push(`/module/${mod.id}`);
+                }}
+              >
+                <View style={styles.moduleMeta}>
+                  <View style={[styles.levelBadge, {
+                    backgroundColor: mod.level === "beginner" ? "#D1FAE5" : mod.level === "intermediate" ? "#FEF3C7" : "#FCE7F3"
+                  }]}>
+                    <Text style={[styles.levelText, {
+                      color: mod.level === "beginner" ? "#059669" : mod.level === "intermediate" ? "#D97706" : "#DB2777"
+                    }]}>{mod.level}</Text>
+                  </View>
+                  <Text style={styles.moduleDuration}>
+                    <Feather name="clock" size={11} color={C.textSecondary} /> {mod.duration_minutes}m
+                  </Text>
                 </View>
-                <Text style={styles.moduleDuration}>
-                  <Feather name="clock" size={11} color={C.textSecondary} /> {mod.duration_minutes}m
-                </Text>
-              </View>
-              <Text style={styles.moduleTitle}>{mod.title}</Text>
-              <Text style={styles.moduleDesc} numberOfLines={2}>{mod.description}</Text>
-              <View style={styles.moduleFooter}>
-                <Text style={styles.moduleCategory}>{mod.category}</Text>
-                <Feather name="arrow-right" size={16} color={C.primary} />
-              </View>
-            </Pressable>
-          ))}
-        </ScrollView>
+                <Text style={styles.moduleTitle}>{mod.title}</Text>
+                <Text style={styles.moduleDesc} numberOfLines={2}>{mod.description}</Text>
+                <View style={styles.moduleFooter}>
+                  <Text style={styles.moduleCategory}>{mod.category}</Text>
+                  <Feather name="arrow-right" size={16} color={C.primary} />
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -186,30 +188,36 @@ export default function HomeScreen() {
             <Text style={styles.seeAll}>See all</Text>
           </Pressable>
         </View>
-        <View style={styles.listingsCol}>
-          {listings.map((item) => (
-            <Pressable
-              key={item.id}
-              style={({ pressed }) => [styles.listingCard, { opacity: pressed ? 0.95 : 1 }]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push(`/product/${item.id}`);
-              }}
-            >
-              <View style={styles.listingIconBox}>
-                <Feather name="package" size={22} color={C.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.listingTitle}>{item.title}</Text>
-                <Text style={styles.listingFarmer}>{item.farmer_name} · {item.location}</Text>
-              </View>
-              <View style={{ alignItems: "flex-end" }}>
-                <Text style={styles.listingPrice}>R{item.price.toFixed(2)}</Text>
-                <Text style={styles.listingUnit}>per {item.unit}</Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+        {listingsLoading ? (
+          <ActivityIndicator color={C.primary} style={{ paddingLeft: 20 }} />
+        ) : (
+          <View style={styles.listingsCol}>
+            {listings.slice(0, 3).map((item) => (
+              <Pressable
+                key={item.id}
+                style={({ pressed }) => [styles.listingCard, { opacity: pressed ? 0.95 : 1 }]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push(`/product/${item.id}`);
+                }}
+              >
+                <View style={styles.listingIconBox}>
+                  <Feather name="package" size={22} color={C.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.listingTitle}>{item.title}</Text>
+                  <Text style={styles.listingFarmer}>
+                    {item.farmer_name} · {item.location}
+                  </Text>
+                </View>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={styles.listingPrice}>R{Number(item.price).toFixed(2)}</Text>
+                  <Text style={styles.listingUnit}>per {item.unit}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </View>
 
       <View style={{ height: 100 }} />
@@ -253,7 +261,12 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 16,
   },
-  guestBannerText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", color: C.primary },
+  guestBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: C.primary,
+  },
   statsRow: {
     flexDirection: "row",
     marginHorizontal: 20,
@@ -316,13 +329,26 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     gap: 8,
   },
-  moduleMeta: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  moduleMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   levelBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   levelText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
   moduleDuration: { fontSize: 12, color: C.textSecondary, fontFamily: "Inter_400Regular" },
   moduleTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: C.text },
-  moduleDesc: { fontSize: 13, fontFamily: "Inter_400Regular", color: C.textSecondary, lineHeight: 18 },
-  moduleFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  moduleDesc: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: C.textSecondary,
+    lineHeight: 18,
+  },
+  moduleFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   moduleCategory: { fontSize: 12, fontFamily: "Inter_500Medium", color: C.primaryLight },
   listingsCol: { paddingHorizontal: 20, gap: 10 },
   listingCard: {
@@ -344,7 +370,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   listingTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: C.text },
-  listingFarmer: { fontSize: 12, fontFamily: "Inter_400Regular", color: C.textSecondary, marginTop: 2 },
+  listingFarmer: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: C.textSecondary,
+    marginTop: 2,
+  },
   listingPrice: { fontSize: 16, fontFamily: "Inter_700Bold", color: C.primary },
   listingUnit: { fontSize: 11, fontFamily: "Inter_400Regular", color: C.textSecondary },
 });
