@@ -26,7 +26,8 @@ artifacts/agri-learn/
 │   │   ├── login.tsx         # Sign in screen
 │   │   └── register.tsx      # Registration with role selector
 │   ├── module/[id].tsx       # Module detail + content reader
-│   └── product/[id].tsx      # Product detail + contact seller
+│   ├── product/[id].tsx      # Product detail + contact seller
+│   └── listing/create.tsx    # Create listing form (farmers only)
 ├── lib/supabase.ts           # Supabase client + type definitions
 ├── context/AuthContext.tsx   # Auth provider (sign in/up/out, profile)
 └── constants/colors.ts       # Design system (green #2D6A4F palette)

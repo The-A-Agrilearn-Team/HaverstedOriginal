@@ -62,7 +62,10 @@ export default function MarketScreen() {
           {canList && (
             <Pressable
               style={styles.addButton}
-              onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push("/listing/create");
+              }}
             >
               <Feather name="plus" size={20} color="#fff" />
               <Text style={styles.addButtonText}>List</Text>

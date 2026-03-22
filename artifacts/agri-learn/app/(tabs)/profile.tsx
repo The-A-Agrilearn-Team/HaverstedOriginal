@@ -144,7 +144,8 @@ export default function ProfileScreen() {
           <Text style={styles.sectionLabel}>Marketplace</Text>
           <View style={styles.menuGroup}>
             <MenuRow icon="package" label="My Listings" badge={stats.listings > 0 ? String(stats.listings) : undefined} />
-            <MenuRow icon="message-circle" label="Messages" last />
+            <MenuRow icon="message-circle" label="Messages" />
+            <MenuRow icon="plus-circle" label="Create New Listing" onPress={() => router.push("/listing/create")} last />
           </View>
         </View>
       )}
@@ -175,12 +176,13 @@ export default function ProfileScreen() {
 }
 
 function MenuRow({
-  icon, label, value, badge, last,
+  icon, label, value, badge, last, onPress,
 }: {
-  icon: string; label: string; value?: string; badge?: string; last?: boolean;
+  icon: string; label: string; value?: string; badge?: string; last?: boolean; onPress?: () => void;
 }) {
   return (
     <Pressable
+      onPress={onPress}
       style={({ pressed }) => [
         styles.menuRow,
         !last && styles.menuRowBorder,
