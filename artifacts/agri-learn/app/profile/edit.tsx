@@ -56,7 +56,6 @@ export default function EditProfileScreen() {
   const [language, setLanguage] = useState(profile?.language_preference ?? "en");
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [saved, setSaved] = useState(false);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -69,6 +68,11 @@ export default function EditProfileScreen() {
   };
 
   const handleSave = async () => {
+    if (!hasChanges) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert("No Changes", "You haven't made any changes to your profile.");
+      return;
+    }
     if (!validate()) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
@@ -87,8 +91,7 @@ export default function EditProfileScreen() {
       Alert.alert("Could not save", error);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+      Alert.alert("Saved!", "Your profile has been updated successfully.");
     }
   };
 
@@ -130,11 +133,11 @@ export default function EditProfileScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.saveNavBtn,
-            (!hasChanges || saving) && styles.saveNavBtnDisabled,
+            saving && styles.saveNavBtnDisabled,
             { opacity: pressed ? 0.7 : 1 },
           ]}
           onPress={handleSave}
-          disabled={!hasChanges || saving}
+          disabled={saving}
         >
           {saving ? (
             <ActivityIndicator size="small" color="#fff" />
@@ -163,13 +166,6 @@ export default function EditProfileScreen() {
             </View>
           </View>
         </View>
-
-        {saved && (
-          <View style={styles.successBanner}>
-            <Feather name="check-circle" size={16} color={C.success} />
-            <Text style={styles.successText}>Profile saved successfully!</Text>
-          </View>
-        )}
 
         <Text style={styles.sectionLabel}>Personal Details</Text>
         <View style={styles.card}>
@@ -308,20 +304,18 @@ export default function EditProfileScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.saveBtn,
-            (!hasChanges || saving) && styles.saveBtnDisabled,
+            saving && styles.saveBtnDisabled,
             { opacity: pressed ? 0.85 : 1 },
           ]}
           onPress={handleSave}
-          disabled={!hasChanges || saving}
+          disabled={saving}
         >
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <>
               <Feather name="check" size={20} color="#fff" />
-              <Text style={styles.saveBtnText}>
-                {hasChanges ? "Save Changes" : "No Changes"}
-              </Text>
+              <Text style={styles.saveBtnText}>Save Changes</Text>
             </>
           )}
         </Pressable>
@@ -394,7 +388,7 @@ const styles = StyleSheet.create({
     minWidth: 60,
     alignItems: "center",
   },
-  saveNavBtnDisabled: { backgroundColor: C.border },
+  saveNavBtnDisabled: { backgroundColor: C.textTertiary },
   saveNavBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
   scroll: { padding: 20, gap: 8 },
   avatarSection: {
@@ -428,18 +422,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   rolePillText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: C.primary },
-  successBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: `${C.success}14`,
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: `${C.success}30`,
-    marginBottom: 4,
-  },
-  successText: { fontSize: 14, fontFamily: "Inter_500Medium", color: C.success },
   sectionLabel: {
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
