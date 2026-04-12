@@ -40,8 +40,16 @@ artifacts/agri-learn/
 - **admin**: Full access + content management + audit logs
 
 ## Environment Variables
-- `EXPO_PUBLIC_SUPABASE_URL`: Set — `https://quxdfknwgymgghemkmcd.supabase.co`
-- `EXPO_PUBLIC_SUPABASE_ANON_KEY`: **PENDING** — needs Supabase dashboard → Project Settings → API → anon public key
+- `EXPO_PUBLIC_SUPABASE_URL`: `https://quxdfknwgymgghemkmcd.supabase.co`
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`: Set in Supabase dashboard → Project Settings → API → anon public key
+- Copy `artifacts/agri-learn/.env.example` → `artifacts/agri-learn/.env` and fill in values
+
+## Local Development (Windows)
+See `README.md` for full setup instructions. Summary:
+1. Install Node.js (LTS), pnpm, and Expo Go on your phone
+2. `pnpm install`
+3. Copy and fill `.env` files (see `.env.example` in each artifact)
+4. `pnpm --filter @workspace/agri-learn run dev` to start the Expo app
 
 ## Design System
 - Primary: `#2D6A4F` (forest green)
