@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
+import ADMIN_CONFIG from "@/constants/adminConfig";
 
 const C = Colors.light;
 
@@ -26,6 +27,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleLogin = async () => {
@@ -40,6 +42,23 @@ export default function LoginScreen() {
     setLoading(false);
     if (result.error) {
       setError("Invalid email or password");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.dismissAll();
+    }
+  };
+
+  const handleAdminLogin = async () => {
+    setError("");
+    setAdminLoading(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const result = await signIn(ADMIN_CONFIG.email, ADMIN_CONFIG.password);
+    setAdminLoading(false);
+    if (result.error) {
+      setError(
+        "Admin account not set up yet. Please follow the setup instructions in the README."
+      );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -140,6 +159,33 @@ export default function LoginScreen() {
             <View style={styles.dividerLine} />
           </View>
 
+          <View style={styles.adminSection}>
+            <View style={styles.adminSectionHeader}>
+              <Feather name="shield" size={14} color={C.error} />
+              <Text style={styles.adminSectionLabel}>Staff / Admin Access</Text>
+            </View>
+            <Pressable
+              style={({ pressed }) => [
+                styles.adminButton,
+                { opacity: pressed || adminLoading ? 0.85 : 1 },
+              ]}
+              onPress={handleAdminLogin}
+              disabled={adminLoading}
+            >
+              {adminLoading ? (
+                <ActivityIndicator color={C.error} />
+              ) : (
+                <>
+                  <Feather name="shield" size={18} color={C.error} />
+                  <Text style={styles.adminButtonText}>Login as Administrator</Text>
+                </>
+              )}
+            </Pressable>
+            <Text style={styles.adminHint}>
+              Uses fixed system credentials. Contact your supervisor for access.
+            </Text>
+          </View>
+
           <Pressable
             style={({ pressed }) => [
               styles.secondaryButton,
@@ -231,6 +277,48 @@ const styles = StyleSheet.create({
   },
   dividerLine: { flex: 1, height: 1, backgroundColor: C.border },
   dividerText: { fontSize: 13, color: C.textSecondary, fontFamily: "Inter_400Regular" },
+  adminSection: {
+    backgroundColor: `${C.error}08`,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: `${C.error}20`,
+    padding: 16,
+    gap: 12,
+  },
+  adminSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  adminSectionLabel: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    color: C.error,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  adminButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: `${C.error}12`,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: `${C.error}30`,
+  },
+  adminButtonText: {
+    color: C.error,
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+  },
+  adminHint: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    color: C.textTertiary,
+    textAlign: "center",
+  },
   secondaryButton: {
     borderRadius: 14,
     padding: 16,
