@@ -25,7 +25,7 @@ interface AuthContextType {
     full_name?: string;
     phone?: string;
     location?: string;
-    language_preference?: string;
+    language_pref?: string;
   }) => Promise<{ error?: string }>;
 }
 
@@ -69,12 +69,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data } = await supabase
+         const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .single();
-      setProfile(data ? (data as Profile) : null);
+
+      if (data) {
+        setProfile(data as Profile);
+        return;
+      }
+
+      // No profile row found — build one from auth metadata and persist it
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const meta = authUser?.user_metadata ?? {};
+      const fallbackRole = (meta.role as Profile["role"]) ?? "buyer";
+      const fallbackName = (meta.full_name as string) ?? authUser?.email?.split("@")[0] ?? "User";
+      const fallbackEmail = authUser?.email ?? "";
+
+      const recoveredProfile: Profile = {
+        id: userId,
+        email: fallbackEmail,
+        full_name: fallbackName,
+        role: fallbackRole,
+        language_pref: "en",
+        created_at: new Date().toISOString(),
+      };
+
+      // Persist to DB so future loads work
+      await supabase.from("profiles").upsert({
+        id: userId,
+        email: fallbackEmail,
+        full_name: fallbackName,
+        role: fallbackRole,
+        language_pref: "en",
+      });
+
+      setProfile(recoveredProfile);
     } catch {
       setProfile(null);
     } finally {
@@ -103,13 +134,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     if (error) return { error: error.message };
     if (data.user) {
-      await supabase.from("profiles").upsert({
+      const { error: upsertError } = await supabase.from("profiles").upsert({
         id: data.user.id,
         email,
         full_name: fullName,
         role,
-        language_preference: "en",
+        language_pref: "en",
       });
+      if (upsertError) console.warn("Profile upsert error:", upsertError.message);
     }
     return {};
   };
@@ -142,7 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     full_name?: string;
     phone?: string;
     location?: string;
-    language_preference?: string;
+    language_pref?: string;
   }) => {
     if (!user) return { error: "Not signed in" };
     const { error } = await supabase

@@ -53,7 +53,7 @@ export default function EditProfileScreen() {
   const [fullName, setFullName] = useState(profile?.full_name ?? "");
   const [phone, setPhone] = useState(profile?.phone ?? "");
   const [location, setLocation] = useState(profile?.location ?? "");
-  const [language, setLanguage] = useState(profile?.language_preference ?? "en");
+  const [language, setLanguage] = useState(profile?.language_pref ?? "en");
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -70,7 +70,10 @@ export default function EditProfileScreen() {
   const handleSave = async () => {
     if (!hasChanges) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      Alert.alert("No Changes", "You haven't made any changes to your profile.");
+      Alert.alert(
+        "No Changes",
+        "You haven't made any changes to your profile.",
+      );
       return;
     }
     if (!validate()) {
@@ -83,7 +86,7 @@ export default function EditProfileScreen() {
       full_name: fullName.trim(),
       phone: phone.trim() || undefined,
       location: location.trim() || undefined,
-      language_preference: language,
+      language_pref: language,
     });
     setSaving(false);
     if (error) {
@@ -101,7 +104,7 @@ export default function EditProfileScreen() {
     fullName !== (profile?.full_name ?? "") ||
     phone !== (profile?.phone ?? "") ||
     location !== (profile?.location ?? "") ||
-    language !== (profile?.language_preference ?? "en");
+    language !== (profile?.language_pref ?? "en");
 
   const initials = (fullName || profile?.full_name || user?.email || "?")
     .split(" ")
@@ -117,12 +120,19 @@ export default function EditProfileScreen() {
     >
       <View style={[styles.navBar, { paddingTop: insets.top + 8 }]}>
         <Pressable
-          style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.6 : 1 }]}
+          style={({ pressed }) => [
+            styles.navBtn,
+            { opacity: pressed ? 0.6 : 1 },
+          ]}
           onPress={() => {
             if (hasChanges) {
               Alert.alert("Discard changes?", "You have unsaved changes.", [
                 { text: "Keep editing", style: "cancel" },
-                { text: "Discard", style: "destructive", onPress: () => router.replace("/(tabs)/profile") },
+                {
+                  text: "Discard",
+                  style: "destructive",
+                  onPress: () => router.replace("/(tabs)/profile"),
+                },
               ]);
             } else {
               router.replace("/(tabs)/profile");
@@ -152,7 +162,10 @@ export default function EditProfileScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 100 }]}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: insets.bottom + 100 },
+        ]}
       >
         <View style={styles.avatarSection}>
           <View style={styles.avatar}>
@@ -163,7 +176,8 @@ export default function EditProfileScreen() {
             <Text style={styles.avatarEmail}>{user?.email}</Text>
             <View style={styles.rolePill}>
               <Text style={styles.rolePillText}>
-                {(profile?.role ?? "user").charAt(0).toUpperCase() + (profile?.role ?? "user").slice(1)}
+                {(profile?.role ?? "user").charAt(0).toUpperCase() +
+                  (profile?.role ?? "user").slice(1)}
               </Text>
             </View>
           </View>
@@ -215,7 +229,8 @@ export default function EditProfileScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.fieldLabel}>Account Role</Text>
               <Text style={styles.readonlyValue}>
-                {(profile?.role ?? "user").charAt(0).toUpperCase() + (profile?.role ?? "user").slice(1)}
+                {(profile?.role ?? "user").charAt(0).toUpperCase() +
+                  (profile?.role ?? "user").slice(1)}
               </Text>
             </View>
             <View style={styles.lockedBadge}>
@@ -243,7 +258,12 @@ export default function EditProfileScreen() {
             </View>
           </View>
           <View style={styles.divider} />
-          <Text style={[styles.fieldLabel, { paddingHorizontal: 16, paddingTop: 4, marginBottom: 10 }]}>
+          <Text
+            style={[
+              styles.fieldLabel,
+              { paddingHorizontal: 16, paddingTop: 4, marginBottom: 10 },
+            ]}
+          >
             Or pick a province
           </Text>
           <View style={styles.provincesGrid}>
@@ -260,10 +280,12 @@ export default function EditProfileScreen() {
                   Haptics.selectionAsync();
                 }}
               >
-                <Text style={[
-                  styles.provinceChipText,
-                  location === prov && styles.provinceChipTextActive,
-                ]}>
+                <Text
+                  style={[
+                    styles.provinceChipText,
+                    location === prov && styles.provinceChipTextActive,
+                  ]}
+                >
                   {prov}
                 </Text>
               </Pressable>
@@ -290,10 +312,12 @@ export default function EditProfileScreen() {
                 {language === lang.code && (
                   <Feather name="check" size={12} color="#fff" />
                 )}
-                <Text style={[
-                  styles.langChipText,
-                  language === lang.code && styles.langChipTextActive,
-                ]}>
+                <Text
+                  style={[
+                    styles.langChipText,
+                    language === lang.code && styles.langChipTextActive,
+                  ]}
+                >
                   {lang.label}
                 </Text>
               </Pressable>
@@ -327,7 +351,14 @@ export default function EditProfileScreen() {
 }
 
 function FieldRow({
-  icon, label, placeholder, value, onChangeText, error, keyboardType, autoCapitalize,
+  icon,
+  label,
+  placeholder,
+  value,
+  onChangeText,
+  error,
+  keyboardType,
+  autoCapitalize,
 }: {
   icon: string;
   label: string;
@@ -391,7 +422,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   saveNavBtnDisabled: { backgroundColor: C.textTertiary },
-  saveNavBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  saveNavBtnText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    color: "#fff",
+  },
   scroll: { padding: 20, gap: 8 },
   avatarSection: {
     flexDirection: "row",
@@ -414,7 +449,12 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontSize: 24, fontFamily: "Inter_700Bold", color: "#fff" },
   avatarName: { fontSize: 17, fontFamily: "Inter_700Bold", color: C.text },
-  avatarEmail: { fontSize: 13, fontFamily: "Inter_400Regular", color: C.textSecondary, marginTop: 2 },
+  avatarEmail: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: C.textSecondary,
+    marginTop: 2,
+  },
   rolePill: {
     alignSelf: "flex-start",
     backgroundColor: `${C.primary}14`,
@@ -423,7 +463,11 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     marginTop: 6,
   },
-  rolePillText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: C.primary },
+  rolePillText: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    color: C.primary,
+  },
   sectionLabel: {
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
@@ -458,7 +502,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 2,
   },
-  fieldLabel: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: C.textSecondary, marginBottom: 4 },
+  fieldLabel: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    color: C.textSecondary,
+    marginBottom: 4,
+  },
   inlineInput: {
     fontSize: 15,
     fontFamily: "Inter_400Regular",
@@ -480,7 +529,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     marginTop: 2,
   },
-  lockedText: { fontSize: 11, fontFamily: "Inter_500Medium", color: C.textTertiary },
+  lockedText: {
+    fontSize: 11,
+    fontFamily: "Inter_500Medium",
+    color: C.textTertiary,
+  },
   errorText: {
     fontSize: 12,
     fontFamily: "Inter_500Medium",
@@ -504,8 +557,15 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     backgroundColor: C.surfaceSecondary,
   },
-  provinceChipActive: { backgroundColor: `${C.primary}14`, borderColor: C.primary },
-  provinceChipText: { fontSize: 12, fontFamily: "Inter_500Medium", color: C.textSecondary },
+  provinceChipActive: {
+    backgroundColor: `${C.primary}14`,
+    borderColor: C.primary,
+  },
+  provinceChipText: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    color: C.textSecondary,
+  },
   provinceChipTextActive: { color: C.primary },
   langGrid: {
     flexDirection: "row",
@@ -525,7 +585,11 @@ const styles = StyleSheet.create({
     backgroundColor: C.surfaceSecondary,
   },
   langChipActive: { backgroundColor: C.primary, borderColor: C.primary },
-  langChipText: { fontSize: 13, fontFamily: "Inter_500Medium", color: C.textSecondary },
+  langChipText: {
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    color: C.textSecondary,
+  },
   langChipTextActive: { color: "#fff" },
   footer: {
     paddingHorizontal: 20,

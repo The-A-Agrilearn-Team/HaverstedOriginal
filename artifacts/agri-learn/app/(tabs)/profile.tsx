@@ -26,14 +26,15 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       refreshProfile();
-    }, [])
+    }, []),
   );
 
-  const { data: stats = { completed: 0, bookmarks: 0, listings: 0 } } = useProfileStats();
+  const { data: stats = { completed: 0, bookmarks: 0, listings: 0 } } =
+    useProfileStats();
 
   const handleSignOut = () => {
     if (Platform.OS === "web") {
-      if (window.confirm("Are you sure you want to sign out?")){
+      if (window.confirm("Are you sure you want to sign out?")) {
         signOut();
       }
       return signOut();
@@ -59,10 +60,14 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.guestTitle}>You're not signed in</Text>
         <Text style={styles.guestSubtitle}>
-          Create an account to access all learning modules, track your progress, and list produce in the marketplace.
+          Create an account to access all learning modules, track your progress,
+          and list produce in the marketplace.
         </Text>
         <Pressable
-          style={({ pressed }) => [styles.signInBtn, { opacity: pressed ? 0.85 : 1 }]}
+          style={({ pressed }) => [
+            styles.signInBtn,
+            { opacity: pressed ? 0.85 : 1 },
+          ]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push("/(auth)/login");
@@ -71,7 +76,10 @@ export default function ProfileScreen() {
           <Text style={styles.signInBtnText}>Sign In</Text>
         </Pressable>
         <Pressable
-          style={({ pressed }) => [styles.registerBtn, { opacity: pressed ? 0.7 : 1 }]}
+          style={({ pressed }) => [
+            styles.registerBtn,
+            { opacity: pressed ? 0.7 : 1 },
+          ]}
           onPress={() => router.push("/(auth)/register")}
         >
           <Text style={styles.registerBtnText}>Create Account</Text>
@@ -93,7 +101,7 @@ export default function ProfileScreen() {
     retailer: "#7C3AED",
     admin: C.error,
   };
-  const thisColor = roleColor[profile?.role ?? "farmer"] ?? C.primary;
+  const thisColor = roleColor[profile?.role ?? ""] ?? C.primary;
 
   return (
     <ScrollView
@@ -110,7 +118,9 @@ export default function ProfileScreen() {
         <View style={[styles.roleBadge, { backgroundColor: `${thisColor}18` }]}>
           <View style={[styles.roleDot, { backgroundColor: thisColor }]} />
           <Text style={[styles.roleText, { color: thisColor }]}>
-            {(profile?.role ?? "farmer").charAt(0).toUpperCase() + (profile?.role ?? "farmer").slice(1)}
+            {profile?.role
+              ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
+              : "Loading..."}
           </Text>
         </View>
         {profile?.location && (
@@ -139,17 +149,40 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Account</Text>
         <View style={styles.menuGroup}>
-          <MenuRow icon="user" label="Personal Information" onPress={() => router.push("/profile/edit")} />
-          <MenuRow icon="map-pin" label="Location" value={profile?.location ?? "Not set"} onPress={() => router.push("/profile/edit")} />
-          <MenuRow icon="globe" label="Language" value={profile?.language_preference ?? "English"} onPress={() => router.push("/profile/edit")} last />
+          <MenuRow
+            icon="user"
+            label="Personal Information"
+            onPress={() => router.push("/profile/edit")}
+          />
+          <MenuRow
+            icon="map-pin"
+            label="Location"
+            value={profile?.location ?? "Not set"}
+            onPress={() => router.push("/profile/edit")}
+          />
+          <MenuRow
+            icon="globe"
+            label="Language"
+            value={profile?.language_pref ?? "English"}
+            onPress={() => router.push("/profile/edit")}
+            last
+          />
         </View>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Learning</Text>
         <View style={styles.menuGroup}>
-          <MenuRow icon="bookmark" label="Saved Modules" badge={stats.bookmarks > 0 ? String(stats.bookmarks) : undefined} />
-          <MenuRow icon="award" label="My Progress" badge={stats.completed > 0 ? `${stats.completed} done` : undefined} />
+          <MenuRow
+            icon="bookmark"
+            label="Saved Modules"
+            badge={stats.bookmarks > 0 ? String(stats.bookmarks) : undefined}
+          />
+          <MenuRow
+            icon="award"
+            label="My Progress"
+            badge={stats.completed > 0 ? `${stats.completed} done` : undefined}
+          />
           <MenuRow icon="download" label="Offline Content" last />
         </View>
       </View>
@@ -158,9 +191,18 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Marketplace</Text>
           <View style={styles.menuGroup}>
-            <MenuRow icon="package" label="My Listings" badge={stats.listings > 0 ? String(stats.listings) : undefined} />
+            <MenuRow
+              icon="package"
+              label="My Listings"
+              badge={stats.listings > 0 ? String(stats.listings) : undefined}
+            />
             <MenuRow icon="message-circle" label="Messages" />
-            <MenuRow icon="plus-circle" label="Create New Listing" onPress={() => router.push("/listing/create")} last />
+            <MenuRow
+              icon="plus-circle"
+              label="Create New Listing"
+              onPress={() => router.push("/listing/create")}
+              last
+            />
           </View>
         </View>
       )}
@@ -194,7 +236,10 @@ export default function ProfileScreen() {
 
       <View style={styles.signOutSection}>
         <Pressable
-          style={({ pressed }) => [styles.signOutButton, { opacity: pressed ? 0.8 : 1 }]}
+          style={({ pressed }) => [
+            styles.signOutButton,
+            { opacity: pressed ? 0.8 : 1 },
+          ]}
           onPress={handleSignOut}
         >
           <Feather name="log-out" size={18} color={C.error} />
@@ -209,9 +254,19 @@ export default function ProfileScreen() {
 }
 
 function MenuRow({
-  icon, label, value, badge, last, onPress,
+  icon,
+  label,
+  value,
+  badge,
+  last,
+  onPress,
 }: {
-  icon: string; label: string; value?: string; badge?: string; last?: boolean; onPress?: () => void;
+  icon: string;
+  label: string;
+  value?: string;
+  badge?: string;
+  last?: boolean;
+  onPress?: () => void;
 }) {
   return (
     <Pressable
@@ -243,49 +298,186 @@ function MenuRow({
 
 const styles = StyleSheet.create({
   guestContainer: {
-    flex: 1, backgroundColor: C.background, alignItems: "center", paddingHorizontal: 32, gap: 16,
+    flex: 1,
+    backgroundColor: C.background,
+    alignItems: "center",
+    paddingHorizontal: 32,
+    gap: 16,
   },
   guestIconBox: {
-    width: 96, height: 96, borderRadius: 48, backgroundColor: `${C.primary}12`, alignItems: "center", justifyContent: "center", marginBottom: 8,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: `${C.primary}12`,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
   },
-  guestTitle: { fontSize: 24, fontFamily: "Inter_700Bold", color: C.text, textAlign: "center" },
-  guestSubtitle: { fontSize: 14, fontFamily: "Inter_400Regular", color: C.textSecondary, textAlign: "center", lineHeight: 22 },
-  signInBtn: { width: "100%", backgroundColor: C.primary, borderRadius: 14, padding: 16, alignItems: "center" },
-  signInBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  registerBtn: { width: "100%", borderRadius: 14, padding: 16, alignItems: "center", borderWidth: 1.5, borderColor: C.border },
-  registerBtnText: { color: C.text, fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  header: { alignItems: "center", paddingHorizontal: 20, paddingBottom: 24, gap: 6 },
-  avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: C.primary, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  guestTitle: {
+    fontSize: 24,
+    fontFamily: "Inter_700Bold",
+    color: C.text,
+    textAlign: "center",
+  },
+  guestSubtitle: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    color: C.textSecondary,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  signInBtn: {
+    width: "100%",
+    backgroundColor: C.primary,
+    borderRadius: 14,
+    padding: 16,
+    alignItems: "center",
+  },
+  signInBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
+  },
+  registerBtn: {
+    width: "100%",
+    borderRadius: 14,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: C.border,
+  },
+  registerBtnText: {
+    color: C.text,
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
+  },
+  header: {
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    gap: 6,
+  },
+  avatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: C.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
   avatarText: { fontSize: 32, fontFamily: "Inter_700Bold", color: "#fff" },
   name: { fontSize: 22, fontFamily: "Inter_700Bold", color: C.text },
-  email: { fontSize: 14, fontFamily: "Inter_400Regular", color: C.textSecondary },
-  roleBadge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
+  email: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    color: C.textSecondary,
+  },
+  roleBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
   roleDot: { width: 7, height: 7, borderRadius: 3.5 },
   roleText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  locationText: { fontSize: 13, fontFamily: "Inter_400Regular", color: C.textSecondary },
-  statsRow: { flexDirection: "row", marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, marginBottom: 24 },
+  locationText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: C.textSecondary,
+  },
+  statsRow: {
+    flexDirection: "row",
+    marginHorizontal: 20,
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    marginBottom: 24,
+  },
   stat: { flex: 1, alignItems: "center", paddingVertical: 16 },
-  statBorder: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: C.border },
+  statBorder: {
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: C.border,
+  },
   statNum: { fontSize: 22, fontFamily: "Inter_700Bold", color: C.text },
-  statLbl: { fontSize: 12, fontFamily: "Inter_400Regular", color: C.textSecondary },
+  statLbl: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: C.textSecondary,
+  },
   section: { marginHorizontal: 20, marginBottom: 20 },
-  sectionLabel: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: C.textSecondary, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 },
-  menuGroup: { backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border },
-  menuRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14 },
+  sectionLabel: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: C.textSecondary,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  menuGroup: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
   menuRowBorder: { borderBottomWidth: 1, borderBottomColor: C.borderLight },
   menuRowLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  menuIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: `${C.primary}12`, alignItems: "center", justifyContent: "center" },
+  menuIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: `${C.primary}12`,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   menuLabel: { fontSize: 15, fontFamily: "Inter_500Medium", color: C.text },
   menuRowRight: { flexDirection: "row", alignItems: "center", gap: 6 },
-  badgePill: { backgroundColor: C.primary, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+  badgePill: {
+    backgroundColor: C.primary,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
   badgeText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#fff" },
-  menuValue: { fontSize: 14, fontFamily: "Inter_400Regular", color: C.textSecondary },
+  menuValue: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    color: C.textSecondary,
+  },
   signOutSection: { marginHorizontal: 20, marginBottom: 8 },
   signOutButton: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
-    backgroundColor: `${C.error}10`, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: `${C.error}20`,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: `${C.error}10`,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: `${C.error}20`,
   },
-  signOutText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: C.error },
-  versionText: { fontSize: 12, fontFamily: "Inter_400Regular", color: C.textTertiary, textAlign: "center", marginBottom: 8 },
+  signOutText: {
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
+    color: C.error,
+  },
+  versionText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: C.textTertiary,
+    textAlign: "center",
+    marginBottom: 8,
+  },
 });
