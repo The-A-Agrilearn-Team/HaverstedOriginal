@@ -15,17 +15,53 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import { useModules } from "@/hooks/useModules";
+import { useAuth } from "@/context/AuthContext";
 
 const C = Colors.light;
 
 const FILTERS = ["All", "Crops", "Livestock", "Irrigation", "Soil", "Pest Control", "Business"];
 
+function FarmerOnlyGate({ insets }: { insets: { top: number } }) {
+  const { user } = useAuth();
+  return (
+    <View style={{ flex: 1, backgroundColor: C.background }}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 16 }]}>
+        <Text style={styles.pageTitle}>Learning Hub</Text>
+      </View>
+      <View style={styles.gateContainer}>
+        <View style={styles.gateIconBox}>
+          <Feather name="lock" size={36} color={C.primary} />
+        </View>
+        <Text style={styles.gateTitle}>Farmers Only</Text>
+        <Text style={styles.gateText}>
+          Learning modules are exclusively available to registered farmers. This content helps farmers grow their knowledge and skills.
+        </Text>
+        {!user && (
+          <Pressable
+            style={styles.gateButton}
+            onPress={() => router.push("/(auth)/login")}
+          >
+            <Text style={styles.gateButtonText}>Sign In as Farmer</Text>
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+}
+
 export default function LearnScreen() {
   const insets = useSafeAreaInsets();
+  const { profile } = useAuth();
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
 
   const { data: allModules = [], isLoading, refetch } = useModules();
+
+  const isFarmerOrAdmin = profile?.role === "farmer" || profile?.role === "admin";
+
+  if (!isFarmerOrAdmin) {
+    return <FarmerOnlyGate insets={insets} />;
+  }
 
   const filtered = allModules.filter((m) => {
     const matchesSearch =
@@ -140,6 +176,32 @@ export default function LearnScreen() {
 }
 
 const styles = StyleSheet.create({
+  gateContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+    gap: 16,
+  },
+  gateIconBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: `${C.primary}12`,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  gateTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: C.text, textAlign: "center" },
+  gateText: { fontSize: 14, fontFamily: "Inter_400Regular", color: C.textSecondary, textAlign: "center", lineHeight: 22 },
+  gateButton: {
+    marginTop: 8,
+    backgroundColor: C.primary,
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  gateButtonText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
   topBar: { paddingHorizontal: 20, paddingBottom: 12, backgroundColor: C.background },
   pageTitle: { fontSize: 28, fontFamily: "Inter_700Bold", color: C.text },
   pageSubtitle: { fontSize: 14, fontFamily: "Inter_400Regular", color: C.textSecondary, marginBottom: 14 },
