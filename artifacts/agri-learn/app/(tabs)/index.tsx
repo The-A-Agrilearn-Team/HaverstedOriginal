@@ -50,7 +50,8 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
-  const firstName = profile?.full_name?.split(" ")[0] ?? (user ? "Farmer" : "Guest");
+  const firstName = profile?.full_name?.split(" ")[0] ?? (user ? "User" : "Guest");
+  const canAccessLearn = profile?.role === "farmer" || profile?.role === "admin" || !user;
 
   return (
     <ScrollView
@@ -91,7 +92,7 @@ export default function HomeScreen() {
         >
           <Feather name="info" size={16} color={C.primary} />
           <Text style={styles.guestBannerText}>
-            Sign in to save progress, bookmark modules, and list your produce.
+            Sign in to access the marketplace and unlock features for your role.
           </Text>
           <Feather name="chevron-right" size={14} color={C.primary} />
         </Pressable>
